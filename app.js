@@ -4,8 +4,9 @@ import {
   applyMove, startKey, isClassicStart, scoreGame,
 } from './game.js';
 import { ACHIEVEMENTS } from './achievements.js';
+import { PUZZLES, puzzleState, goalCell, goalMet, goalText } from './puzzles.js';
 
-const VERSION = '1.10.0';
+const VERSION = '1.11.0';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
@@ -19,6 +20,7 @@ const DEFAULT_STATS = {
 let settings = { ...DEFAULT_SETTINGS };
 let stats = structuredClone(DEFAULT_STATS);
 let unlocked = {}; // id -> date
+let solved = {};   // casse-tête id -> { date, time, moves, undos }
 let game = null;   // partie en cours
 let setup = { board: 'english', state: null };
 let busy = false;
@@ -63,6 +65,7 @@ function go(name) {
   if (name === 'achievements') renderAchievements();
   if (name === 'settings') renderSettings();
   if (name === 'setup') renderSetup();
+  if (name === 'puzzles') renderPuzzles();
   if (name === 'game') resumeTimer();
 }
 document.addEventListener('click', e => {
@@ -115,7 +118,7 @@ function paintBoard(el, state, { selected = null, targets = [], overs = [], mova
 }
 
 // ---------------------------------------------------------------- partie
-function newGame(boardId, start, custom) {
+function newGame(boardId, start, custom, puzzleId = null) {
   game = {
     board: boardId,
     start: start.slice(),
@@ -124,8 +127,9 @@ function newGame(boardId, start, custom) {
     moves: 0, undos: 0,
     elapsed: 0, t0: null,
     chain: 0, maxChain: 0, lastTo: null,
-    custom: !!custom,
-    key: startKey(boardId, start),
+    custom: !!custom && !puzzleId,
+    puzzle: puzzleId,
+    key: (puzzleId ? 'puzzle:' : '') + startKey(boardId, start),
     classic: isClassicStart(boardId, start),
     selected: null,
   };
@@ -150,7 +154,12 @@ function renderGame() {
   $('#game-moves').textContent = game.moves;
   const best = stats.best[game.key];
   $('#game-best').textContent = best ? best.left : '—';
-  $('#game-title').textContent = game.classic ? `Classique · ${BOARDS[game.board].name}` : `Libre · ${BOARDS[game.board].name}`;
+  const pz = currentPuzzle();
+  $('#game-title').textContent = pz ? `Casse-tête · ${pz.name}` : game.classic ? `Classique · ${BOARDS[game.board].name}` : `Libre · ${BOARDS[game.board].name}`;
+  $('#game-goal').hidden = !pz;
+  if (pz) $('#game-goal').innerHTML = `<span class="label">Objectif</span> ${goalText(pz)}${solved[pz.id] ? ' <b>· résolu</b>' : ''}`;
+  const gc = pz ? goalCell(pz) : -1;
+  $('#board')._cells.forEach((c, i) => c && c.classList.toggle('goal', i === gc));
   $('#btn-undo').disabled = game.history.length === 0;
   const sel = game.selected != null ? movesFrom(game.state, L.n, game.selected, L.dirs) : [];
   const targets = sel.map(m => m.to), overs = sel.map(m => m.over);
@@ -235,8 +244,14 @@ function undo() {
 
 function restart() {
   if (!game) return;
-  newGame(game.board, game.start, game.custom);
+  newGame(game.board, game.start, game.custom, game.puzzle);
 }
+
+function startPuzzle(id) {
+  const p = PUZZLES.find(p => p.id === id);
+  if (p) newGame(p.board, puzzleState(p), false, p.id);
+}
+const currentPuzzle = () => (game && game.puzzle ? PUZZLES.find(p => p.id === game.puzzle) : null);
 
 // --- entrée tactile : grande zone de toucher + glisser pour sauter
 // Toute la zone autour du plateau est sensible ; on vise le trou le plus proche,
@@ -368,32 +383,42 @@ async function finishGame() {
   const left = countPegs(game.state);
   const initial = countPegs(game.start);
   const centerFinish = left === 1 && L.center >= 0 && game.state[L.center] === 1;
-  const points = scoreGame({ initial, left, centerFinish, undos: game.undos });
+  const pz = currentPuzzle();
+  const puzzleOk = pz ? goalMet(pz, game.state) : false;
+  const firstSolve = puzzleOk && !solved[pz.id];
+  // casse-têtes : des points seulement à la première résolution (pas de farm)
+  const points = pz ? (firstSolve ? 100 + initial * 10 : 0) : scoreGame({ initial, left, centerFinish, undos: game.undos });
+  if (puzzleOk) {
+    const prevS = solved[pz.id];
+    if (!prevS || time < prevS.time) solved[pz.id] = { date: Date.now(), time, moves: game.moves, undos: game.undos };
+  }
+  stats.puzzles = Object.keys(solved).length;
   const prev = stats.best[game.key];
   const improved = !!prev && (left < prev.left || (left === prev.left && time < prev.time));
   const isRecord = !prev || improved;
 
   // stats
   stats.played++;
-  if (left === 1) stats.wins++;
+  if (left === 1 && !pz) stats.wins++;
   stats.points += points;
   stats.time += time;
   stats.removed += initial - left;
   if (game.custom) stats.customPlayed++;
-  stats.boards[game.board] = (stats.boards[game.board] || 0) + 1;
+  if (!pz) stats.boards[game.board] = (stats.boards[game.board] || 0) + 1;
   if (!stats.days.includes(today())) stats.days.push(today());
   const hk = left >= 10 ? '10+' : String(left);
-  stats.hist[hk] = (stats.hist[hk] || 0) + 1;
-  if (isRecord) stats.best[game.key] = { left, time, date: Date.now(), board: game.board, pegs: initial, classic: game.classic };
+  if (!pz) stats.hist[hk] = (stats.hist[hk] || 0) + 1;
+  if (isRecord) stats.best[game.key] = { left, time, date: Date.now(), board: game.board, pegs: initial, classic: game.classic, puzzle: game.puzzle || null };
 
   const record = {
-    key: game.key, board: game.board, classic: game.classic, custom: game.custom,
+    key: game.key, board: game.board, classic: game.classic, custom: game.custom, puzzle: game.puzzle || null, solved: puzzleOk,
     initial, left, centerFinish, points, time, moves: game.moves, undos: game.undos,
     maxChain: game.maxChain, date: Date.now(),
   };
 
   // succès
-  const ctx = { ...record, improved };
+  // les succès de performance ne comptent que les vraies parties, pas les casse-têtes
+  const ctx = pz ? null : { ...record, improved };
   const fresh = [];
   for (const a of ACHIEVEMENTS) {
     if (unlocked[a.id]) continue;
@@ -406,14 +431,19 @@ async function finishGame() {
     db.addGame(record),
     db.set('stats', stats),
     db.set('achievements', unlocked),
+    db.set('puzzles', solved),
     db.del('current'),
   ]);
 
-  showEnd({ ...record, isRecord, prev, fresh });
-  buzz(left === 1 ? [30, 60, 30, 60, 80] : [40]);
+  showEnd({ ...record, isRecord, prev, fresh, firstSolve });
+  buzz(left === 1 || puzzleOk ? [30, 60, 30, 60, 80] : [40]);
 }
 
 function endMessage(r) {
+  if (r.puzzle) {
+    const pz = PUZZLES.find(p => p.id === r.puzzle);
+    return r.solved ? (r.firstSolve ? 'Bien joué, casse-tête résolu.' : 'Résolu, encore une fois.') : `Objectif manqué : ${goalText(pz).toLowerCase()}.`;
+  }
   if (r.left === 1 && r.centerFinish) return 'Parfait. Et pile au centre.';
   if (r.left === 1) return 'Parfait. Une seule bille.';
   if (r.left === 2 && r.board === 'french' && r.classic) return 'Le meilleur résultat possible sur ce départ.';
@@ -425,7 +455,9 @@ function endMessage(r) {
 }
 
 function showEnd(r) {
-  $('#end-kicker').textContent = r.isRecord ? (r.prev ? 'Nouveau record' : 'Premier record') : 'Partie terminée';
+  $('#end-kicker').textContent = r.puzzle ? (r.solved ? 'Casse-tête résolu' : 'Objectif manqué') : r.isRecord ? (r.prev ? 'Nouveau record' : 'Premier record') : 'Partie terminée';
+  $('#btn-again').textContent = r.puzzle && r.solved ? 'Casse-tête suivant' : 'Rejouer';
+  $('#btn-again').dataset.next = r.puzzle && r.solved ? nextPuzzle(r.puzzle) || '' : '';
   $('#end-left').textContent = r.left;
   $('#end-unit').textContent = plural(r.left, 'bille');
   $('#end-msg').textContent = endMessage(r);
@@ -437,7 +469,16 @@ function showEnd(r) {
   $('#sheet-end').hidden = false;
 }
 
-$('#btn-again').onclick = () => { $('#sheet-end').hidden = true; restart(); };
+$('#btn-again').onclick = () => {
+  $('#sheet-end').hidden = true;
+  const next = $('#btn-again').dataset.next;
+  if (next) startPuzzle(next); else if ($('#btn-again').textContent === 'Casse-tête suivant') { game = null; go('puzzles'); } else restart();
+};
+function nextPuzzle(id) {
+  const i = PUZZLES.findIndex(p => p.id === id);
+  const after = [...PUZZLES.slice(i + 1), ...PUZZLES.slice(0, i)].find(p => !solved[p.id]);
+  return after ? after.id : null;
+}
 $('#btn-end-home').onclick = () => { $('#sheet-end').hidden = true; game = null; go('home'); };
 
 // ---------------------------------------------------------------- accueil
@@ -448,6 +489,7 @@ function renderHome() {
   $('#classic-best').textContent = `${BOARDS[b].name} · ${best ? 'record ' + best.left : BOARDS[b].holes + ' trous'}`;
   $('#home-boards').innerHTML = BOARD_ORDER.map(id =>
     `<button class="chip" data-board="${id}" aria-pressed="${id === b}">${BOARDS[id].name}<small>${BOARDS[id].holes}</small></button>`).join('');
+  $('#pz-count').textContent = `${Object.keys(solved).length}/${PUZZLES.length} résolus`;
   $('#ach-count').textContent = `${Object.keys(unlocked).length}/${ACHIEVEMENTS.length}`;
   $('#resume-wrap').hidden = !game || game.over || game.moves === 0;
   if (game) $('#btn-resume').textContent = `Reprendre · ${BOARDS[game.board].name} · ${countPegs(game.state)} billes`;
@@ -470,6 +512,33 @@ $('#btn-restart').onclick = () => {
   if (game && game.moves > 3 && !confirm('Recommencer cette partie ?')) return;
   restart();
 };
+
+function miniBoard(boardId, state, goal = -1, size = 64) {
+  const L = layout(boardId), n = L.n, s = 10;
+  let dots = '';
+  L.cells.forEach((v, i) => {
+    if (!v) return;
+    const p = L.pos[i], x = p.x * s + s / 2, y = p.y * s + s / 2;
+    if (state[i] === 1) dots += `<circle cx="${x}" cy="${y}" r="3.4" fill="currentColor"/>`;
+    else dots += `<circle cx="${x}" cy="${y}" r="1.4" fill="currentColor" fill-opacity=".3"/>`;
+    if (i === goal) dots += `<circle cx="${x}" cy="${y}" r="4.6" fill="none" stroke="currentColor" stroke-width="1.1"/>`;
+  });
+  return `<svg viewBox="0 0 ${n * s} ${n * s}" width="${size}" height="${size}">${dots}</svg>`;
+}
+
+function renderPuzzles() {
+  const done = Object.keys(solved).length;
+  $('#pz-progress').textContent = `${done}/${PUZZLES.length}`;
+  $('#pz-content').innerHTML = PUZZLES.map((p, k) => {
+    const st = puzzleState(p), sv = solved[p.id];
+    return `<button class="pz${sv ? ' done' : ''}" data-pz="${p.id}">
+      <span class="pz-mini">${miniBoard(p.board, st, goalCell(p))}</span>
+      <span class="pz-txt"><span class="label">${String(k + 1).padStart(2, '0')} · ${BOARDS[p.board].name} · ${countPegs(st)} billes</span>
+        <b>${p.name}</b><small>${goalText(p)}</small></span>
+      <span class="pz-state">${sv ? '✓' : ''}</span></button>`;
+  }).join('');
+}
+$('#pz-content').onclick = e => { const b = e.target.closest('[data-pz]'); if (b) startPuzzle(b.dataset.pz); };
 
 function heroMark() {
   // mini plateau anglais, trou central vide
@@ -545,7 +614,7 @@ async function renderStats() {
       <div class="v">${best ? best.left : '—'}<small>${best ? fmtTime(best.time) : ''}</small></div></div>`;
   }).join('');
 
-  const customs = Object.entries(stats.best).filter(([, v]) => !v.classic)
+  const customs = Object.entries(stats.best).filter(([, v]) => !v.classic && !v.puzzle)
     .sort((a, b) => a[1].left - b[1].left || b[1].date - a[1].date).slice(0, 8);
   const customRows = customs.length ? customs.map(([, v]) =>
     `<div class="item"><div><div class="t">${BOARDS[v.board].name} · ${v.pegs} billes au départ</div><div class="s">${new Date(v.date).toLocaleDateString('fr-FR')}</div></div>
@@ -658,6 +727,7 @@ async function init() {
   if (settings.v !== 2) { settings.classicBoard = 'english'; settings.v = 2; db.set('settings', settings); }
   stats = { ...structuredClone(DEFAULT_STATS), ...(await db.get('stats', {})) };
   unlocked = await db.get('achievements', {});
+  solved = await db.get('puzzles', {});
   const saved = await db.get('current');
   if (saved && BOARDS[saved.board]) game = { ...saved, t0: null, selected: null };
   setup.board = settings.classicBoard;

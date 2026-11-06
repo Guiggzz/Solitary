@@ -17,6 +17,10 @@ Sur iPhone : Partager → *Sur l'écran d'accueil*. Sur Android : menu → *Inst
   <img src="docs/screenshots/07-succes.png" width="200" alt="Succès">
   <img src="docs/screenshots/08-theme-clair.png" width="200" alt="Thème clair">
 </p>
+<p align="center">
+  <img src="docs/screenshots/09-casse-tetes.png" width="200" alt="Liste des casse-têtes">
+  <img src="docs/screenshots/10-casse-tete-objectif.png" width="200" alt="Casse-tête avec objectif">
+</p>
 
 ## Règles
 
@@ -40,7 +44,8 @@ Les résultats indiqués ont été vérifiés avec un solveur.
 - **Mode Classique** sur le plateau choisi, et **Départ libre** : on compose n'importe quelle position de départ, et chaque position a son propre record.
 - Au toucher : bille puis trou. Les **coups possibles clignotent**, la zone de toucher est élargie, et on peut aussi **faire glisser** la bille.
 - **Retour haptique** sur Android (`navigator.vibrate`) et sur iPhone, via un interrupteur natif `<input switch>`, seul moyen pour une page web de faire vibrer un iPhone. Un bouton dans la partie l'active ou le désactive.
-- **Points, records, statistiques, 26 succès**, tous stockés **localement sur le téléphone** (IndexedDB). Rien n'est envoyé à un serveur. Export et import en JSON.
+- **12 casse-têtes** avec objectif (une bille sur le trou marqué, une bille n'importe où, N billes ou moins), tous **prouvés résolubles** par `tools/verify-puzzles.mjs` : recherche exhaustive, puis chaque solution est rejouée dans le moteur du jeu.
+- **Points, records, statistiques, 29 succès**, tous stockés **localement sur le téléphone** (IndexedDB). Rien n'est envoyé à un serveur. Export et import en JSON.
 - Annuler, chrono, reprise de la partie en cours, thème clair.
 - **Hors connexion** grâce à un service worker.
 
@@ -55,6 +60,8 @@ app.js                interface, entrées tactiles, haptique, stats, succès
 game.js               logique pure : plateaux, coups, score
 db.js                 stockage local IndexedDB
 achievements.js       définition des succès
+puzzles.js            casse-têtes et objectifs
+tools/verify-puzzles.mjs  preuve que chaque casse-tête est résoluble
 sw.js                 cache hors-ligne
 manifest.webmanifest  installation PWA
 ```
@@ -64,6 +71,12 @@ manifest.webmanifest  installation PWA
 ```bash
 python3 -m http.server 8000
 # puis http://localhost:8000
+```
+
+### Vérifier les casse-têtes
+
+```bash
+node tools/verify-puzzles.mjs
 ```
 
 ### Déployer

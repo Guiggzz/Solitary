@@ -46,6 +46,9 @@
         <button class="btn btn-solid wide" id="btn-classic">
           <span>Jouer</span><small id="classic-best">—</small>
         </button>
+        <button class="btn btn-line wide" data-go="puzzles">
+          <span>Casse-têtes</span><small id="pz-count">0/0</small>
+        </button>
         <button class="btn btn-line wide" data-go="setup">
           <span>Départ libre</span><small>Choisis ton plateau</small>
         </button>
@@ -78,6 +81,8 @@
           <span class="label">Coups <b class="mono" id="game-moves">0</b></span>
         </div>
       </div>
+
+      <p class="goal-line" id="game-goal" hidden></p>
 
       <div class="board-wrap">
         <div class="board" id="board"></div>
@@ -119,6 +124,19 @@
       <footer class="controls">
         <button class="btn btn-solid wide" id="btn-setup-play">Jouer</button>
       </footer>
+    </section>
+
+    <!-- CASSE-TÊTES -->
+    <section class="screen scroll" id="screen-puzzles">
+      <header class="top">
+        <button class="icon-btn" data-go="home" aria-label="Retour">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="label">Casse-têtes</span>
+        <span class="label mono" id="pz-progress"></span>
+      </header>
+      <p class="hint left">Chaque position a une solution, vérifiée par ordinateur. À toi de la trouver.</p>
+      <div class="content" id="pz-content"></div>
     </section>
 
     <!-- RECORDS -->
@@ -177,6 +195,9 @@
 
         <h2>Départ libre</h2>
         <p>Sur l'accueil, choisis le plateau sous «&nbsp;Plateau&nbsp;» (la croix anglaise est sélectionnée par défaut) pour jouer sa position classique. En départ libre, choisis un plateau et touche les trous pour composer ta position de départ&nbsp;: un trou décalé, plusieurs trous, ou une position inventée. Chaque position a son propre record.</p>
+
+        <h2>Casse-têtes</h2>
+        <p>Des positions avec un <b>objectif</b>&nbsp;: finir avec une seule bille sur le trou marqué d'un anneau, finir avec une seule bille n'importe où, ou descendre sous un nombre de billes. Chacune a été <b>vérifiée résoluble</b> par un solveur. Points à la première résolution&nbsp;: <b>100 + 10 par bille</b>.</p>
 
         <h2>Points</h2>
         <p>10 points par bille retirée. Bonus de fin&nbsp;: 1 bille <b>+500</b>, 2 billes <b>+200</b>, 3 billes <b>+100</b>, 4–5 billes <b>+40</b>. Dernière bille au centre <b>+300</b>. Partie sans annuler&nbsp;: <b>+20&nbsp;%</b>.</p>

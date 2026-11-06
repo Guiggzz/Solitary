@@ -1,7 +1,7 @@
 // Cache hors-ligne. Incrémenter VERSION à chaque déploiement.
-const VERSION = 'solitaire-v1.10.0';
+const VERSION = 'solitaire-v1.11.0';
 const ASSETS = [
-  './', 'index.html', 'style.css', 'app.js', 'game.js', 'db.js', 'achievements.js',
+  './', 'index.html', 'style.css', 'app.js', 'game.js', 'db.js', 'achievements.js', 'puzzles.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
   'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
 ];
