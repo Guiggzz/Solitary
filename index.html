@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Solitaire">
+  <meta name="description" content="Solitaire à billes — minimaliste, hors ligne.">
+  <title>Solitaire</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+
+    <!-- ACCUEIL -->
+    <section class="screen" id="screen-home" data-active>
+      <header class="top">
+        <span class="label">Points <b id="home-points">0</b></span>
+        <button class="icon-btn" data-go="settings" aria-label="Réglages">
+          <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+        </button>
+      </header>
+
+      <div class="hero">
+        <div class="hero-mark" aria-hidden="true"></div>
+        <h1>Solitaire</h1>
+        <p class="sub">Une bille. Un trou. Le reste en moins.</p>
+      </div>
+
+      <div class="resume" id="resume-wrap" hidden>
+        <button class="btn btn-ghost wide" id="btn-resume">Reprendre la partie</button>
+      </div>
+
+      <div class="board-pick">
+        <span class="label">Plateau</span>
+        <div class="chips" id="home-boards"></div>
+      </div>
+
+      <nav class="menu">
+        <button class="btn btn-solid wide" id="btn-classic">
+          <span>Jouer</span><small id="classic-best">—</small>
+        </button>
+        <button class="btn btn-line wide" data-go="setup">
+          <span>Départ libre</span><small>Choisis ton plateau</small>
+        </button>
+      </nav>
+
+      <nav class="tabs">
+        <button data-go="stats">Records</button>
+        <button data-go="achievements">Succès <b id="ach-count">0/0</b></button>
+        <button data-go="rules">Règles</button>
+      </nav>
+    </section>
+
+    <!-- PARTIE -->
+    <section class="screen" id="screen-game">
+      <header class="top">
+        <button class="icon-btn" id="btn-quit" aria-label="Menu">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="label" id="game-title">Classique</span>
+        <span class="label mono" id="game-timer">0:00</span>
+      </header>
+
+      <div class="hud">
+        <div class="hud-main">
+          <span class="big mono" id="game-left">32</span>
+          <span class="label">billes</span>
+        </div>
+        <div class="hud-side">
+          <span class="label">Record <b class="mono" id="game-best">—</b></span>
+          <span class="label">Coups <b class="mono" id="game-moves">0</b></span>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+
+      <footer class="controls">
+        <button class="btn btn-line" id="btn-undo">Annuler</button>
+        <button class="btn btn-line btn-icon" id="btn-haptic" aria-label="Vibrations" aria-pressed="true">
+          <svg viewBox="0 0 24 24"><rect x="8" y="4" width="8" height="16" rx="2"/><path class="w" d="M4 9v6M20 9v6M1.5 10.5v3M22.5 10.5v3"/><path class="x" d="M3 3l18 18"/></svg>
+        </button>
+        <button class="btn btn-line" id="btn-restart">Recommencer</button>
+      </footer>
+    </section>
+
+    <!-- CONFIGURATION DÉPART LIBRE -->
+    <section class="screen" id="screen-setup">
+      <header class="top">
+        <button class="icon-btn" data-go="home" aria-label="Retour">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="label">Départ libre</span>
+        <span class="label mono" id="setup-count">0</span>
+      </header>
+
+      <div class="chips" id="board-chips"></div>
+      <p class="hint" id="setup-hint">Touche un trou pour retirer ou remettre une bille.</p>
+
+      <div class="board-wrap">
+        <div class="board editing" id="setup-board"></div>
+      </div>
+
+      <div class="chips small">
+        <button class="chip" id="setup-full">Remplir</button>
+        <button class="chip" id="setup-center">Centre</button>
+        <button class="chip" id="setup-random">Au hasard</button>
+        <button class="chip" id="setup-invert">Inverser</button>
+      </div>
+
+      <footer class="controls">
+        <button class="btn btn-solid wide" id="btn-setup-play">Jouer</button>
+      </footer>
+    </section>
+
+    <!-- RECORDS -->
+    <section class="screen scroll" id="screen-stats">
+      <header class="top">
+        <button class="icon-btn" data-go="home" aria-label="Retour">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="label">Records</span>
+        <span></span>
+      </header>
+      <div class="content" id="stats-content"></div>
+    </section>
+
+    <!-- SUCCÈS -->
+    <section class="screen scroll" id="screen-achievements">
+      <header class="top">
+        <button class="icon-btn" data-go="home" aria-label="Retour">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="label">Succès</span>
+        <span class="label mono" id="ach-progress"></span>
+      </header>
+      <div class="content" id="ach-content"></div>
+    </section>
+
+    <!-- RÈGLES -->
+    <section class="screen scroll" id="screen-rules">
+      <header class="top">
+        <button class="icon-btn" data-go="home" aria-label="Retour">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="label">Règles</span>
+        <span></span>
+      </header>
+      <div class="content prose">
+        <h2>Le but</h2>
+        <p>Retirer un maximum de billes. La partie se termine quand plus aucun saut n'est possible&nbsp;: ton score, c'est le nombre de billes restantes. <b>Moins il en reste, mieux c'est.</b> Une seule bille, c'est gagné.</p>
+
+        <h2>Un coup</h2>
+        <p>Une bille saute <b>par-dessus une bille voisine</b>, horizontalement ou verticalement, pour atterrir dans un <b>trou vide</b> juste derrière. La bille sautée est retirée du plateau.</p>
+        <div class="demo" aria-hidden="true">
+          <span class="d on"></span><span class="d on"></span><span class="d"></span>
+          <span class="arrow">→</span>
+          <span class="d"></span><span class="d"></span><span class="d on"></span>
+        </div>
+        <p>Pas de saut en diagonale (sauf sur le Triangle), pas de saut de plusieurs billes d'un coup. Une même bille peut enchaîner plusieurs sauts.</p>
+
+        <h2>Les plateaux</h2>
+        <p><b>Anglais · 33 trous</b> — la croix simple&nbsp;: 32 billes, le trou central vide. C'est le mode Classique. Il se résout&nbsp;: finir avec une seule bille, idéalement au centre.</p>
+        <p><b>Français · 37 trous</b> — la croix avec une bille de plus dans chaque angle, 36 billes. Depuis le centre, impossible de finir à une bille&nbsp;: 2, c'est le maximum.</p>
+        <p><b>Allemand · 45 trous</b> — une croix plus large, plus longue.</p>
+        <p><b>Asymétrique · 39 trous</b> — une croix dont deux branches sont plus longues que les autres.</p>
+        <p><b>Diamant · 41 trous</b> — un losange, très ouvert.</p>
+        <p><b>Triangle · 15 trous</b> — 14 billes, le trou du sommet vide. Ici les sauts se font dans <b>6 directions</b>&nbsp;: le long des trois côtés du triangle.</p>
+
+        <h2>Départ libre</h2>
+        <p>Sur l'accueil, choisis le plateau sous «&nbsp;Plateau&nbsp;» (la croix anglaise est sélectionnée par défaut) pour jouer sa position classique. En départ libre, choisis un plateau et touche les trous pour composer ta position de départ&nbsp;: un trou décalé, plusieurs trous, ou une position inventée. Chaque position a son propre record.</p>
+
+        <h2>Points</h2>
+        <p>10 points par bille retirée. Bonus de fin&nbsp;: 1 bille <b>+500</b>, 2 billes <b>+200</b>, 3 billes <b>+100</b>, 4–5 billes <b>+40</b>. Dernière bille au centre <b>+300</b>. Partie sans annuler&nbsp;: <b>+20&nbsp;%</b>.</p>
+      </div>
+    </section>
+
+    <!-- RÉGLAGES -->
+    <section class="screen scroll" id="screen-settings">
+      <header class="top">
+        <button class="icon-btn" data-go="home" aria-label="Retour">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="label">Réglages</span>
+        <span></span>
+      </header>
+      <div class="content">
+        <label class="row toggle"><span>Vibrations<br><small class="hint left" style="padding:0">Sur iPhone : touche cet interrupteur, il doit vibrer.</small></span><input type="checkbox" switch class="native" id="set-haptics"></label>
+        <label class="row toggle"><span>Montrer les coups possibles</span><input type="checkbox" id="set-hints"><i></i></label>
+        <label class="row toggle"><span>Thème clair</span><input type="checkbox" id="set-light"><i></i></label>
+        <div class="row"><span>Plateau du mode Classique</span><select id="set-classic"></select></div>
+        <p class="hint left">Tes parties, records et succès sont enregistrés uniquement sur cet appareil.</p>
+        <button class="btn btn-line wide" id="btn-export">Exporter mes données</button>
+        <button class="btn btn-line wide" id="btn-import">Importer des données</button>
+        <input type="file" id="import-file" accept="application/json" hidden>
+        <button class="btn btn-danger wide" id="btn-reset">Tout effacer</button>
+        <p class="hint left mono" id="version"></p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FIN DE PARTIE -->
+  <div class="sheet" id="sheet-end" hidden>
+    <div class="sheet-card">
+      <span class="label" id="end-kicker">Partie terminée</span>
+      <div class="end-score"><span class="huge mono" id="end-left">1</span><span class="label" id="end-unit">bille</span></div>
+      <p class="end-msg" id="end-msg"></p>
+      <div class="end-grid">
+        <div><span class="label">Points</span><b class="mono" id="end-points">0</b></div>
+        <div><span class="label">Temps</span><b class="mono" id="end-time">0:00</b></div>
+        <div><span class="label">Record</span><b class="mono" id="end-best">—</b></div>
+      </div>
+      <div class="end-ach" id="end-ach"></div>
+      <div class="sheet-actions">
+        <button class="btn btn-solid wide" id="btn-again">Rejouer</button>
+        <button class="btn btn-ghost wide" id="btn-end-home">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
